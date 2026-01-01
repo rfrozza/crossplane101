@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: backend-team
+  name: backend-team-developer
+rules:
+# Full access within team namespace
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apps", "extensions"]
+  resources: ["*"]
+  verbs: ["*"]
+# Crossplane claims in namespace
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+  resourceNames: []

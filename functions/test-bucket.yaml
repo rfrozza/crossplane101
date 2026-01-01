@@ -1,0 +1,10 @@
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: BucketClaim
+metadata:
+  name: testbucket
+  namespace: backend-team
+spec:
+  bucketName: BUCKET_NAME_PLACEHOLDER
+  environment: dev
+  tier: basic
+  writeConnectionSecretsToNamespace: backend-team

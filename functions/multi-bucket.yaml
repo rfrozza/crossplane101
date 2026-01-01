@@ -1,0 +1,30 @@
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: BucketClaim
+metadata:
+  name: team-buckets
+  namespace: backend-team
+spec:
+  # These fields are required but will be overridden by buckets array
+  bucketName: placeholder
+  environment: dev
+  tier: basic
+  writeConnectionSecretsToNamespace: backend-team
+
+  # The buckets array defines multiple buckets
+  buckets:
+    - name: USERDATA_PLACEHOLDER
+      environment: dev
+      tier: basic
+    - name: ORDERS_PLACEHOLDER
+      environment: dev
+      tier: standard
+    - name: ANALYTICS_PLACEHOLDER
+      environment: staging
+      tier: premium
+
+  features:
+    versioning: true
+    encryption: false
+
+  compositionRef:
+    name: bucket-aws-arrays

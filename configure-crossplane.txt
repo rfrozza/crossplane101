@@ -1,0 +1,7 @@
+# Create Service Account
+kubectl create serviceaccount platform-admin -n platform-team
+kubectl create serviceaccount platform-operator -n platform-team
+kubectl create serviceaccount backend-developer -n backend-team
+kubectl create serviceaccount frontend-developer -n frontend-team
+# Create Role Binding
+

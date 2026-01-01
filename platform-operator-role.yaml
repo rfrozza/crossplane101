@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-operator
+rules:
+# Crossplane management permissions
+- apiGroups: ["pkg.crossplane.io"]
+  resources: ["providers", "configurations", "configurationrevisions"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["apiextensions.crossplane.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Read-only for infrastructure resources
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: []
+# Namespace management for teams
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]

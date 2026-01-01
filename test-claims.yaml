@@ -1,0 +1,22 @@
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: DatabaseClaim
+metadata:
+  name: dev-app-db
+  namespace: backend-team
+spec:
+  environment: dev
+  size: small
+  databaseName: testapp
+  writeConnectionSecretsToNamespace: backend-team
+---
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: DatabaseClaim
+metadata:
+  name: staging-app-db
+  namespace: backend-team
+spec:
+  environment: staging
+  size: medium
+  databaseName: stagingapp
+  storageGB: 50
+  writeConnectionSecretsToNamespace: backend-team

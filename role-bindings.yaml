@@ -1,0 +1,52 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-admin-binding
+subjects:
+- kind: ServiceAccount
+  name: platform-admin
+  namespace: platform-team
+roleRef:
+  kind: ClusterRole
+  name: platform-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-operator-binding
+subjects:
+- kind: ServiceAccount
+  name: platform-operator
+  namespace: platform-team
+roleRef:
+  kind: ClusterRole
+  name: platform-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backend-developer-binding
+subjects:
+- kind: ServiceAccount
+  name: backend-developer
+  namespace: backend-team
+roleRef:
+  kind: ClusterRole
+  name: crossplane-developer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-team-binding
+  namespace: backend-team
+subjects:
+- kind: ServiceAccount
+  name: backend-developer
+  namespace: backend-team
+roleRef:
+  kind: Role
+  name: backend-team-developer
+  apiGroup: rbac.authorization.k8s.io

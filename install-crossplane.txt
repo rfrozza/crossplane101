@@ -1,0 +1,51 @@
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm repo update
+helm search repo crossplane
+---
+crossplane-values.yaml
+# Production-ready Crossplane configuration optimized for minikube
+image:
+  tag: v1.20.0
+
+# Resource requirements optimized for minikube
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+# Security settings (production patterns)
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  capabilities:
+    drop:
+      - ALL
+
+# Enable additional features for platform engineering
+args:
+  - --debug
+  - --enable-composition-revisions
+  - --enable-realtime-compositions
+
+# Metrics and monitoring
+metrics:
+  enabled: true
+
+# Note: Pod disruption budget disabled for single-node minikube
+podDisruptionBudget:
+  enabled: false
+
+# Optimized for single-node environment
+affinity: {}
+nodeSelector: {}
+tolerations: []
+---
+helm install crossplane crossplane-stable/crossplane --version 1.20.0 --namespace crossplane-system --values crossplane-values.yaml
+curl -fsSL -o /tmp/crossplane "https://releases.crossplane.io/stable/v2.1.3/bin/linux_amd64/crank" #linux_arm64
+chmod +x /tmp/crossplane
+mv /tmp/crossplane /usr/local/bin/crossplane

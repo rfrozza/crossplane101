@@ -1,0 +1,9 @@
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: DatabaseClaim
+metadata:
+  name: invalid-test
+  namespace: backend-team
+spec:
+  environment: "invalid-env"  # Should fail validation
+  size: "tiny"                # Should fail validation
+  databaseName: "test"

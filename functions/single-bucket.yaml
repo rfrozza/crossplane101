@@ -1,0 +1,15 @@
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: BucketClaim
+metadata:
+  name: single-bucket
+  namespace: backend-team
+spec:
+  bucketName: BUCKET_NAME_PLACEHOLDER
+  environment: staging
+  tier: standard
+  writeConnectionSecretsToNamespace: backend-team
+  features:
+    versioning: true
+    encryption: true
+  compositionRef:
+    name: bucket-aws-arrays

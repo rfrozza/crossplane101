@@ -1,0 +1,109 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: bucket-aws-functions
+  labels:
+    provider: aws
+    service: bucket
+    version: functions
+spec:
+  compositeTypeRef:
+    apiVersion: platform.tekanaid.com/v1alpha1
+    kind: XBucket
+  
+  mode: Pipeline
+  pipeline:
+  - step: create-bucket-resources
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{- $bucketName := printf "tekanaid-crossplane-%s-%s" .observed.composite.resource.spec.bucketName .observed.composite.resource.spec.environment }}
+          ---
+          apiVersion: s3.aws.upbound.io/v1beta1
+          kind: Bucket
+          metadata:
+            name: {{ $bucketName }}
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: main-bucket
+          spec:
+            forProvider:
+              region: us-east-1
+              
+              tags:
+                Environment: {{ .observed.composite.resource.spec.environment }}
+                Tier: {{ .observed.composite.resource.spec.tier }}
+                BucketName: {{ .observed.composite.resource.spec.bucketName }}
+                ManagedBy: crossplane-functions
+                Purpose: storage-bucket
+                
+            providerConfigRef:
+              name: default
+
+          {{ if or (eq .observed.composite.resource.spec.environment "staging") (eq .observed.composite.resource.spec.environment "prod") }}
+          ---
+          apiVersion: s3.aws.upbound.io/v1beta1
+          kind: BucketVersioning
+          metadata:
+            name: {{ .observed.composite.resource.spec.bucketName }}-{{ .observed.composite.resource.spec.environment }}-versioning
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: bucket-versioning
+          spec:
+            forProvider:
+              bucket: {{ $bucketName }}
+              region: us-east-1
+              versioningConfiguration:
+                - status: Enabled
+            providerConfigRef:
+              name: default
+          {{ end }}
+
+          {{ if eq .observed.composite.resource.spec.environment "prod" }}
+          ---
+          apiVersion: s3.aws.upbound.io/v1beta1
+          kind: BucketServerSideEncryptionConfiguration
+          metadata:
+            name: {{ .observed.composite.resource.spec.bucketName }}-{{ .observed.composite.resource.spec.environment }}-encryption
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: bucket-encryption
+          spec:
+            forProvider:
+              bucket: {{ $bucketName }}
+              region: us-east-1
+              rule:
+                - applyServerSideEncryptionByDefault:
+                  - sseAlgorithm: AES256
+            providerConfigRef:
+              name: default
+          {{ end }}
+
+          {{ if eq .observed.composite.resource.spec.tier "premium" }}
+          ---
+          apiVersion: s3.aws.upbound.io/v1beta1
+          kind: BucketIntelligentTieringConfiguration
+          metadata:
+            name: {{ .observed.composite.resource.spec.bucketName }}-{{ .observed.composite.resource.spec.environment }}-tiering
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: intelligent-tiering
+          spec:
+            forProvider:
+              bucket: {{ $bucketName }}
+              name: entire-bucket
+              region: us-east-1
+              status: Enabled
+              tiering:
+                - accessTier: ARCHIVE_ACCESS
+                  days: 90
+                - accessTier: DEEP_ARCHIVE_ACCESS
+                  days: 180
+            providerConfigRef:
+              name: default
+          {{ end }}
+
+  - step: auto-ready
+    functionRef:
+      name: function-auto-ready

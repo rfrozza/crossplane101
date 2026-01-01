@@ -1,0 +1,109 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xbuckets.platform.tekanaid.com
+spec:
+  group: platform.tekanaid.com
+  names:
+    kind: XBucket
+    plural: xbuckets
+  claimNames:
+    kind: BucketClaim
+    plural: bucketclaims
+  
+  connectionSecretKeys:
+    - endpoint
+    - region
+    - bucket-name
+    - access-key-id
+    - secret-access-key
+  
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              environment:
+                type: string
+                enum: ["dev", "staging", "prod"]
+                description: "Environment for the bucket"
+              tier:
+                type: string
+                enum: ["basic", "standard", "premium"]
+                description: "Service tier of the bucket instance"
+              bucketName:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+                maxLength: 20
+                description: "Name of the bucket (lowercase, starts with letter)"
+              storageClass:
+                type: string
+                enum: ["standard", "intelligent-tiering", "glacier"]
+                default: "standard"
+                description: "Storage class for the bucket"
+              writeConnectionSecretsToNamespace:
+                type: string
+                description: "Namespace to write connection secrets to"
+              # Arrays for multiple buckets
+              buckets:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      pattern: "^[a-z][a-z0-9-]*$"
+                      maxLength: 20
+                    environment:
+                      type: string
+                      enum: ["dev", "staging", "prod"]
+                    tier:
+                      type: string
+                      enum: ["basic", "standard", "premium"]
+                  required:
+                    - name
+                    - environment
+                    - tier
+                description: "Array of buckets to create (alternative to single bucket)"
+              # Optional features
+              features:
+                type: object
+                properties:
+                  versioning:
+                    type: boolean
+                    default: false
+                  encryption:
+                    type: boolean
+                    default: false
+                  publicAccess:
+                    type: boolean
+                    default: false
+            required:
+              - bucketName
+              - environment
+              - tier
+              - writeConnectionSecretsToNamespace
+          status:
+            type: object
+            properties:
+              ready:
+                type: boolean
+    additionalPrinterColumns:
+    - name: Environment
+      type: string
+      jsonPath: .spec.environment
+    - name: Tier
+      type: string  
+      jsonPath: .spec.tier
+    - name: Ready
+      type: boolean
+      jsonPath: .status.ready
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

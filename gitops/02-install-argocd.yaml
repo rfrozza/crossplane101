@@ -31,7 +31,6 @@ metadata:
 
 # --------------------------------
 
-# REMOVED_TOKEN
 # GITHUB_USERNAME=$(git config --get remote.origin.url | sed 's|.*github.com[:/]\([^/]*\)/.*|\1|' | sed 's|.*@||')
 # git remote set-url origin https://${GH_TOKEN}@github.com/${GITHUB_USERNAME}/crossplane-gitops-lab.git
 # git remote -v

@@ -1,0 +1,77 @@
+# RBAC permissions for Crossplane to manage advanced Kubernetes resources
+# Required for v2.0 compositions that create NetworkPolicies and PodDisruptionBudgets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane-networkpolicy
+  labels:
+    crossplane.io/scope: cluster
+    app.kubernetes.io/name: crossplane
+rules:
+- apiGroups:
+  - "networking.k8s.io"
+  resources:
+  - "networkpolicies"
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+  - "create"
+  - "update"
+  - "patch"
+  - "delete"
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crossplane-networkpolicy
+  labels:
+    crossplane.io/scope: cluster
+subjects:
+- kind: ServiceAccount
+  name: crossplane
+  namespace: crossplane-system
+roleRef:
+  kind: ClusterRole
+  name: crossplane-networkpolicy
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane-poddisruption
+  labels:
+    crossplane.io/scope: cluster
+    app.kubernetes.io/name: crossplane
+rules:
+- apiGroups:
+  - "policy"
+  resources:
+  - "poddisruptionbudgets"
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+  - "create"
+  - "update"
+  - "patch"
+  - "delete"
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crossplane-poddisruption
+  labels:
+    crossplane.io/scope: cluster
+subjects:
+- kind: ServiceAccount
+  name: crossplane
+  namespace: crossplane-system
+roleRef:
+  kind: ClusterRole
+  name: crossplane-poddisruption
+  apiGroup: rbac.authorization.k8s.io

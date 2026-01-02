@@ -1,0 +1,78 @@
+# RBAC for Operations workflows
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: team-a
+  name: database-operations
+rules:
+# Operations permissions - Real Crossplane v2.0 Operations API
+- apiGroups: ["ops.crossplane.io"]
+  resources: ["operations", "cronoperations", "watchoperations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Database resource permissions
+- apiGroups: ["aws.platform.tekanaid.com"]
+  resources: ["xdatabases"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+
+# Job and Pod permissions for operation execution
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+# Event permissions for monitoring
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: database-operations
+  namespace: team-a
+subjects:
+- kind: ServiceAccount
+  name: crossplane
+  namespace: crossplane-system
+roleRef:
+  kind: Role
+  name: database-operations
+  apiGroup: rbac.authorization.k8s.io
+---
+# Similar RBAC for team-b
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: team-b
+  name: database-operations
+rules:
+- apiGroups: ["ops.crossplane.io"]
+  resources: ["operations", "cronoperations", "watchoperations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["aws.platform.tekanaid.com"]
+  resources: ["xdatabases"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "events"]
+  verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: database-operations
+  namespace: team-b
+subjects:
+- kind: ServiceAccount
+  name: crossplane
+  namespace: crossplane-system
+roleRef:
+  kind: Role
+  name: database-operations
+  apiGroup: rbac.authorization.k8s.io

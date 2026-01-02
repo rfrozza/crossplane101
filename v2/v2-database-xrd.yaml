@@ -1,0 +1,57 @@
+# v2.0 XRD (creates namespace-scoped XRs)
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xdatabases.aws.platform.tekanaid.com
+spec:
+  group: aws.platform.tekanaid.com
+  names:
+    kind: XDatabase
+    plural: xdatabases
+  # CRITICAL v2.0 CHANGE: Namespaced scope
+  scope: Namespaced
+  # NO claimNames - direct XR interaction in v2.0
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                properties:
+                  storageGB:
+                    type: integer
+                    minimum: 20
+                    maximum: 1000
+                  tableType:
+                    type: string
+                    enum: ["transactional", "analytics"]
+                  environment:
+                    type: string
+                    enum: ["development", "staging", "production"]
+                required:
+                - storageGB
+                - tableType
+                - environment
+              writeConnectionSecretsToRef:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+          status:
+            type: object
+            properties:
+              tableName:
+                type: string
+              region:
+                type: string
+              ready:
+                type: boolean

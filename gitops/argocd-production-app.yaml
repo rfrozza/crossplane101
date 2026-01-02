@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: s3-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/rfrozza/crossplane-gitops-lab.git
+    targetRevision: master
+    path: applications/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

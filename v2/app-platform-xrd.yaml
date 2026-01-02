@@ -1,0 +1,163 @@
+# Application Platform XRD - Complete Platform API (not just database)
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xappplatforms.platform.tekanaid.com
+spec:
+  group: platform.tekanaid.com
+  names:
+    kind: XAppPlatform
+    plural: xappplatforms
+  # v2.0: Namespaced scope for multi-tenancy
+  scope: Namespaced
+  
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              # Database configuration (DynamoDB NoSQL)
+              database:
+                type: object
+                properties:
+                  storageGB:
+                    type: integer
+                    minimum: 20
+                    maximum: 1000
+                    default: 50
+                  tableType:
+                    type: string
+                    enum: ["transactional", "analytics"]
+                    default: "transactional"
+                  backupRetentionDays:
+                    type: integer
+                    minimum: 1
+                    maximum: 35
+                    default: 7
+                required:
+                - tableType
+              
+              # Application configuration (NEW in v2.0)
+              application:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  logLevel:
+                    type: string
+                    enum: ["debug", "info", "warn", "error"]
+                    default: "info"
+                  environment:
+                    type: string
+                    enum: ["development", "staging", "production"]
+                  replicas:
+                    type: integer
+                    minimum: 1
+                    maximum: 10
+                    default: 3
+                required:
+                - name
+                - environment
+              
+              # Monitoring configuration (NEW in v2.0)
+              monitoring:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    default: true
+                  interval:
+                    type: string
+                    default: "30s"
+                  alerting:
+                    type: boolean
+                    default: true
+                  dashboards:
+                    type: boolean
+                    default: true
+                  retention:
+                    type: string
+                    default: "30d"
+              
+              # Security configuration (NEW in v2.0)
+              security:
+                type: object
+                properties:
+                  networkPolicy:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        default: true
+                      allowedNamespaces:
+                        type: array
+                        items:
+                          type: string
+                  podSecurityPolicy:
+                    type: boolean
+                    default: true
+                  rbacEnabled:
+                    type: boolean
+                    default: true
+              
+              # Reliability configuration (NEW in v2.0)
+              reliability:
+                type: object
+                properties:
+                  minAvailable:
+                    type: integer
+                    minimum: 1
+                    default: 1
+                  maxUnavailable:
+                    type: integer
+                    minimum: 0
+                    default: 1
+                  autoScaling:
+                    type: boolean
+                    default: false
+              
+              # Connection details output
+              writeConnectionSecretsToRef:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+          
+          status:
+            type: object
+            properties:
+              # Database status
+              database:
+                type: object
+                properties:
+                  endpoint:
+                    type: string
+                  port:
+                    type: integer
+                  ready:
+                    type: boolean
+              
+              # Application status
+              application:
+                type: object
+                properties:
+                  ready:
+                    type: boolean
+                  replicas:
+                    type: integer
+              
+              # Overall platform status
+              conditions:
+                type: array
+                items:
+                  type: object
+              ready:
+                type: boolean

@@ -1,0 +1,48 @@
+# Development Application Platform - Simplified Stack
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: XAppPlatform
+metadata:
+  name: dev-app
+  namespace: team-b
+  labels:
+    environment: development
+    team: team-b
+    platform.tekanaid.com/type: application-platform
+spec:
+  # Smaller database for development
+  database:
+    storageGB: 20
+    tableType: analytics
+    backupRetentionDays: 7
+  
+  # Development application configuration
+  application:
+    name: user-service-dev
+    logLevel: debug
+    environment: development
+    replicas: 1
+  
+  # Basic monitoring for development
+  monitoring:
+    enabled: true
+    interval: "60s"
+    alerting: false
+    dashboards: false
+    retention: "7d"
+  
+  # Relaxed security for development
+  security:
+    networkPolicy:
+      enabled: false
+    podSecurityPolicy: false
+    rbacEnabled: true
+  
+  # Minimal reliability requirements
+  reliability:
+    minAvailable: 1
+    maxUnavailable: 1
+    autoScaling: false
+  
+  writeConnectionSecretsToRef:
+    name: dev-app-secrets
+    namespace: team-b

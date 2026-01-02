@@ -1,0 +1,18 @@
+# Crossplane v2.0 Operations Information
+# This file demonstrates that Operations are enabled in Crossplane v2.0
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: operations-info
+  namespace: crossplane-system
+data:
+  operations-enabled: "true"
+  api-group: "ops.crossplane.io"
+  version: "v1alpha1"
+  features: |
+    Crossplane v2.0 Operations provides:
+    - CronOperation: Schedule-based operations
+    - WatchOperation: Event-driven operations  
+    - Operation: One-time operations
+    
+    These are built-in to Crossplane v2.0 with --enable-operations flag

@@ -1,0 +1,45 @@
+# Daily Database Backup CronOperation using Crossplane v2.0 Operations
+apiVersion: ops.crossplane.io/v1alpha1
+kind: CronOperation
+metadata:
+  name: daily-database-backup
+  namespace: team-a
+  labels:
+    operation.crossplane.io/type: backup
+    platform.tekanaid.com/service: database
+spec:
+  # Run daily at 2 AM UTC  
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  
+  # Operation template defines what operation to run
+  operationTemplate:
+    spec:
+      mode: Pipeline
+      pipeline:
+      - step: backup-database
+        functionRef:
+          name: function-go-templating
+        input:
+          apiVersion: gotemplating.fn.crossplane.io/v1beta1
+          kind: GoTemplate
+          source: Inline
+          inline:
+            template: |
+              # This would create a backup operation for the database
+              # In production, this would trigger actual DynamoDB backup
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: backup-log-{{ .observed.resources.production-db.metadata.name }}
+                namespace: {{ .observed.resources.production-db.metadata.namespace }}
+              data:
+                backupTime: "{{ now | date "2006-01-02T15:04:05Z" }}"
+                backupType: "incremental"
+                retentionDays: "30" 
+                database: "{{ .observed.resources.production-db.metadata.name }}"
+                status: "backup-scheduled"
+      
+  # Keep last 7 job executions for history
+  successfulHistoryLimit: 7
+  failedHistoryLimit: 3

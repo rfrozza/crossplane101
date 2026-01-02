@@ -1,0 +1,14 @@
+# v2.0 Namespaced Database XR for Team A
+apiVersion: aws.platform.tekanaid.com/v1alpha1
+kind: XDatabase
+metadata:
+  name: production-db
+  namespace: team-a  # Namespace-scoped in v2.0!
+spec:
+  parameters:
+    storageGB: 100
+    tableType: transactional
+    environment: production
+  writeConnectionSecretsToRef:
+    name: production-db-connection
+    namespace: team-a  # Secrets stay in same namespace

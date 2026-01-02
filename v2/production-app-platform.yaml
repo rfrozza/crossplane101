@@ -1,0 +1,53 @@
+# Production Application Platform - Complete Stack
+apiVersion: platform.tekanaid.com/v1alpha1
+kind: XAppPlatform
+metadata:
+  name: production-app
+  namespace: team-a
+  labels:
+    environment: production
+    team: team-a
+    platform.tekanaid.com/type: application-platform
+spec:
+  # Database infrastructure configuration
+  database:
+    storageGB: 100
+    tableType: transactional
+    backupRetentionDays: 30
+  
+  # Application platform configuration
+  application:
+    name: user-service
+    logLevel: info
+    environment: production
+    replicas: 3
+  
+  # Monitoring and observability
+  monitoring:
+    enabled: true
+    interval: "30s"
+    alerting: true
+    dashboards: true
+    retention: "90d"
+  
+  # Security and compliance
+  security:
+    networkPolicy:
+      enabled: true
+      allowedNamespaces:
+        - "team-a"
+        - "monitoring"
+        - "ingress"
+    podSecurityPolicy: true
+    rbacEnabled: true
+  
+  # Reliability and availability
+  reliability:
+    minAvailable: 2
+    maxUnavailable: 1
+    autoScaling: false
+  
+  # Connection secret output
+  writeConnectionSecretsToRef:
+    name: production-app-secrets
+    namespace: team-a

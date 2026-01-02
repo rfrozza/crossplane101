@@ -1,0 +1,48 @@
+# Database Capacity and Performance Monitoring using Crossplane v2.0 Operations
+apiVersion: ops.crossplane.io/v1alpha1
+kind: WatchOperation
+metadata:
+  name: database-capacity-monitor
+  namespace: team-a
+  labels:
+    operation.crossplane.io/type: monitoring
+    platform.tekanaid.com/service: database
+spec:
+  # Watch for changes to XDatabase resources
+  watch:
+    apiVersion: aws.platform.tekanaid.com/v1alpha1
+    kind: XDatabase
+    namespace: team-a
+  concurrencyPolicy: Forbid
+  
+  # Operation template defines what operation to run when a change is detected
+  operationTemplate:
+    spec:
+      mode: Pipeline  
+      pipeline:
+      - step: capacity-check
+        functionRef:
+          name: function-go-templating
+        input:
+          apiVersion: gotemplating.fn.crossplane.io/v1beta1
+          kind: GoTemplate
+          source: Inline
+          inline:
+            template: |
+              # This would create a monitoring event when database changes
+              # In production, this would trigger capacity scaling or alerts
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: monitor-event-{{ .observed.resources.production-db.metadata.name }}-{{ now | date "20060102150405" }}
+                namespace: {{ .observed.resources.production-db.metadata.namespace }}
+              data:
+                triggerTime: "{{ now | date "2006-01-02T15:04:05Z" }}"
+                watchedResource: "{{ .observed.resources.production-db.metadata.name }}"
+                resourceNamespace: "{{ .observed.resources.production-db.metadata.namespace }}"
+                changeType: "capacity-monitoring"
+                status: "monitoring-triggered"
+  
+  # Keep history of watch operation executions
+  successfulHistoryLimit: 10
+  failedHistoryLimit: 5

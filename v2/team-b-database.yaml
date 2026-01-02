@@ -1,0 +1,14 @@
+# v2.0 Namespaced Database XR for Team B
+apiVersion: aws.platform.tekanaid.com/v1alpha1
+kind: XDatabase
+metadata:
+  name: analytics-db
+  namespace: team-b  # Different namespace = different team
+spec:
+  parameters:
+    storageGB: 200
+    tableType: analytics
+    environment: production
+  writeConnectionSecretsToRef:
+    name: analytics-db-connection
+    namespace: team-b

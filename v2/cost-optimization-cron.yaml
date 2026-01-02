@@ -1,0 +1,45 @@
+# Weekly Cost Optimization Analysis using Crossplane v2.0 Operations
+apiVersion: ops.crossplane.io/v1alpha1
+kind: CronOperation
+metadata:
+  name: weekly-cost-optimization
+  namespace: team-b
+  labels:
+    operation.crossplane.io/type: cost-optimization
+    platform.tekanaid.com/service: database
+spec:
+  # Run weekly on Sunday at 3 AM UTC
+  schedule: "0 3 * * 0"
+  concurrencyPolicy: Forbid
+  
+  # Operation template defines what operation to run
+  operationTemplate:
+    spec:
+      mode: Pipeline
+      pipeline:
+      - step: analyze-costs
+        functionRef:
+          name: function-go-templating
+        input:
+          apiVersion: gotemplating.fn.crossplane.io/v1beta1
+          kind: GoTemplate
+          source: Inline
+          inline:
+            template: |
+              # This would create a cost analysis report for team-b databases
+              # In production, this would trigger actual cost optimization analysis
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: cost-report-{{ now | date "2006-01-02" }}
+                namespace: team-b
+              data:
+                reportDate: "{{ now | date "2006-01-02T15:04:05Z" }}"
+                analysisType: "cost-optimization"
+                scope: "team-b-databases"
+                status: "analysis-scheduled"
+                recommendations: "rightsizing-storage-optimization"
+  
+  # Keep history of job executions
+  successfulHistoryLimit: 5
+  failedHistoryLimit: 2

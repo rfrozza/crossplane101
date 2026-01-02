@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+
+# ArgoCD will be installed via:
+# kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Set up persistent port forwarding
+# sudo tee /etc/systemd/system/argocd-portforward.service > /dev/null <<EOF
+# [Unit]
+# Description=ArgoCD Port Forward
+# After=network.target
+
+# [Service]
+# Type=simple
+# User=root
+# ExecStart=/usr/local/bin/kubectl port-forward svc/argocd-server -n argocd 8080:443 --address 0.0.0.0
+# Restart=always
+# RestartSec=5
+# Environment=KUBECONFIG=/root/.kube/config
+
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+
+# sudo systemctl daemon-reload
+# sudo systemctl enable argocd-portforward.service
+# sudo systemctl start argocd-portforward.service
+# sudo systemctl status argocd-portforward.service
+
+# --------------------------------
+
+# REMOVED_TOKEN
+# GITHUB_USERNAME=$(git config --get remote.origin.url | sed 's|.*github.com[:/]\([^/]*\)/.*|\1|' | sed 's|.*@||')
+# git remote set-url origin https://${GH_TOKEN}@github.com/${GITHUB_USERNAME}/crossplane-gitops-lab.git
+# git remote -v
+
+# tree
+# .
+# ├── applications
+# │   ├── development
+# │   │   └── development-s3.yaml
+# │   ├── production
+# │   │   └── production-s3.yaml
+# │   └── staging
+# │       └── staging-s3.yaml
+# └── infrastructure
+#     └── crossplane
+#         ├── platform-apis
+#         │   ├── s3-platform-composition.yaml
+#         │   └── s3-platform-xrd.yaml
+#         ├── provider-configs
+#         │   └── provider-config.yaml
+#         └── providers
+#             ├── aws-provider.yaml
+#             └── composition-functions.yaml
+
+# kubectl get bucketclaim -A -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name,TIER:.spec.tier"
+# kubectl get bucketclaim -A -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name,ENVIRONMENT:.spec.environment,TIER:.spec.tier"
+# kubectl logs -n argocd argocd-application-controller-0 -f | grep s3-development
+
+# git revert HEAD --no-edit
+# git push origin master

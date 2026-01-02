@@ -1,0 +1,79 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: database-aws
+  labels:
+    provider: aws
+    service: database
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.tekanaid.com/v1alpha1
+    kind: XDatabase
+  
+  # v2.0 uses Pipeline mode with composition functions
+  mode: Pipeline
+  pipeline:
+  - step: create-resources
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          # DynamoDB Table - Real AWS Resource
+          ---
+          apiVersion: dynamodb.aws.m.upbound.io/v1beta1
+          kind: Table
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-dynamo-table
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            annotations:
+              crossplane.io/external-name: {{ .observed.composite.resource.metadata.name }}-{{ .observed.composite.resource.spec.parameters.environment }}-{{ .observed.composite.resource.metadata.namespace | default "default" }}
+              gotemplating.fn.crossplane.io/composition-resource-name: database-instance
+            labels:
+              table-type: {{ .observed.composite.resource.spec.parameters.tableType }}
+              environment: {{ .observed.composite.resource.spec.parameters.environment }}
+          spec:
+            forProvider:
+              region: us-east-1
+              billingMode: PAY_PER_REQUEST
+              hashKey: id
+              attribute:
+              - name: id
+                type: S
+              pointInTimeRecovery:
+                enabled: {{ if eq .observed.composite.resource.spec.parameters.environment "production" }}true{{ else }}false{{ end }}
+              serverSideEncryption:
+                enabled: true
+              tags:
+                Environment: {{ .observed.composite.resource.spec.parameters.environment }}
+                ManagedBy: crossplane
+                Team: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+                TableType: {{ .observed.composite.resource.spec.parameters.tableType }}
+                StorageGB: "{{ .observed.composite.resource.spec.parameters.storageGB }}"
+            providerConfigRef:
+              name: default
+              kind: ClusterProviderConfig
+          
+          # Connection Secret
+          ---
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: {{ .observed.composite.resource.spec.writeConnectionSecretsToRef.name | default "db-connection" }}
+            namespace: {{ .observed.composite.resource.spec.writeConnectionSecretsToRef.namespace | default .observed.composite.resource.metadata.namespace | default "default" }}
+            annotations:
+              crossplane.io/external-name: {{ .observed.composite.resource.spec.writeConnectionSecretsToRef.name | default "db-connection" }}
+              gotemplating.fn.crossplane.io/composition-resource-name: connection-secret
+          type: Opaque
+          data:
+            region: dXMtZWFzdC0x
+            tableName: {{ printf "%s-%s-%s" .observed.composite.resource.metadata.name .observed.composite.resource.spec.parameters.environment (.observed.composite.resource.metadata.namespace | default "default") | b64enc }}
+            endpoint: aHR0cHM6Ly9keW5hbW9kYi51cy1lYXN0LTEuYW1hem9uYXdzLmNvbQ==
+            accessPattern: SU9U
+  
+  - step: automatically-detect-ready-composed-resources
+    functionRef:
+      name: function-auto-ready

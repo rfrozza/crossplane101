@@ -1,0 +1,179 @@
+# Advanced Database Platform Composition - Composes Any Kubernetes Resource
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: advanced-database-platform
+  labels:
+    provider: aws
+    service: database-platform
+    version: v2.0
+spec:
+  compositeTypeRef:
+    apiVersion: platform.tekanaid.com/v1alpha1
+    kind: XAppPlatform
+  
+  # v2.0 uses Pipeline mode with composition functions
+  mode: Pipeline
+  pipeline:
+  - step: create-resources
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          # Real DynamoDB Table - Infrastructure Resource
+          ---
+          apiVersion: dynamodb.aws.m.upbound.io/v1beta1
+          kind: Table
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-dynamo-table
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            labels:
+              component: database
+              platform.tekanaid.com/type: infrastructure
+            annotations:
+              crossplane.io/external-name: {{ .observed.composite.resource.metadata.name }}-{{ .observed.composite.resource.spec.application.environment }}-{{ .observed.composite.resource.metadata.namespace | default "default" }}
+              gotemplating.fn.crossplane.io/composition-resource-name: database-instance
+          spec:
+            forProvider:
+              region: us-east-1
+              billingMode: PAY_PER_REQUEST
+              hashKey: id
+              attribute:
+                - name: id
+                  type: S
+              pointInTimeRecovery:
+                enabled: {{ if eq .observed.composite.resource.spec.application.environment "production" }}true{{ else }}false{{ end }}
+              serverSideEncryption:
+                enabled: true
+              tags:
+                Environment: {{ .observed.composite.resource.spec.application.environment }}
+                ManagedBy: crossplane
+                Team: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+                TableType: {{ .observed.composite.resource.spec.database.tableType | default "transactional" }}
+            providerConfigRef:
+              name: default
+              kind: ClusterProviderConfig
+          
+          # Application Configuration ConfigMap
+          ---
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-app-config
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            labels:
+              component: configuration
+              platform.tekanaid.com/type: application
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: app-config
+          data:
+            dynamodb.table: "{{ .observed.composite.resource.metadata.name }}-{{ .observed.composite.resource.spec.application.environment }}-{{ .observed.composite.resource.metadata.namespace | default "default" }}"
+            dynamodb.region: "us-east-1"
+            dynamodb.endpoint: "https://dynamodb.us-east-1.amazonaws.com"
+            log.level: "{{ .observed.composite.resource.spec.application.logLevel | default "info" }}"
+            metrics.enabled: "{{ .observed.composite.resource.spec.monitoring.enabled | default true | toString }}"
+            tracing.enabled: "true"
+          
+          # Connection Secret
+          ---
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-db-connection
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            labels:
+              component: database
+              platform.tekanaid.com/type: secrets
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: db-connection-secret
+          type: Opaque
+          data:
+            # DynamoDB connection details
+            region: dXMtZWFzdC0x  # us-east-1 (base64)
+            tableName: "{{ printf "%s-%s-%s" .observed.composite.resource.metadata.name .observed.composite.resource.spec.application.environment (.observed.composite.resource.metadata.namespace | default "default") | b64enc }}"
+            endpoint: aHR0cHM6Ly9keW5hbW9kYi51cy1lYXN0LTEuYW1hem9uYXdzLmNvbQ==  # https://dynamodb.us-east-1.amazonaws.com (base64)
+            accessPattern: dHJhbnNhY3Rpb25hbA==  # transactional (base64)
+          
+          # Monitoring Configuration ConfigMap
+          ---
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-monitoring
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            labels:
+              component: monitoring
+              platform.tekanaid.com/type: observability
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: monitoring-config
+          data:
+            kind: "ServiceMonitor"
+            apiVersion: "monitoring.coreos.com/v1"
+            enabled: "{{ .observed.composite.resource.spec.monitoring.enabled | default true | toString }}"
+            interval: "{{ .observed.composite.resource.spec.monitoring.interval | default "30s" }}"
+            path: "/metrics"
+            port: "metrics"
+            alerting: "{{ .observed.composite.resource.spec.monitoring.alerting | default true | toString }}"
+            dashboards: "{{ .observed.composite.resource.spec.monitoring.dashboards | default true | toString }}"
+            retention: "{{ .observed.composite.resource.spec.monitoring.retention | default "30d" }}"
+          
+          # NetworkPolicy - Security Resource (v2.0 can compose any Kubernetes resource)
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-network-policy
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            labels:
+              component: security
+              platform.tekanaid.com/type: network-policy
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: network-policy
+          spec:
+            podSelector:
+              matchLabels:
+                app: {{ .observed.composite.resource.spec.application.name }}
+            policyTypes:
+            - Ingress
+            - Egress
+            ingress:
+            - from:
+              - namespaceSelector:
+                  matchLabels:
+                    name: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+              ports:
+              - protocol: TCP
+                port: 8080
+            egress:
+            - to: []
+              ports:
+              - protocol: TCP
+                port: 443
+              - protocol: TCP
+                port: 80
+          
+          # PodDisruptionBudget - Reliability Resource
+          ---
+          apiVersion: policy/v1
+          kind: PodDisruptionBudget
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-pdb
+            namespace: {{ .observed.composite.resource.metadata.namespace | default "default" }}
+            labels:
+              component: reliability
+              platform.tekanaid.com/type: availability
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: pod-disruption-budget
+          spec:
+            minAvailable: {{ .observed.composite.resource.spec.reliability.minAvailable | default 1 }}
+            selector:
+              matchLabels:
+                app: {{ .observed.composite.resource.spec.application.name }}
+  
+  - step: automatically-detect-ready-composed-resources
+    functionRef:
+      name: function-auto-ready
